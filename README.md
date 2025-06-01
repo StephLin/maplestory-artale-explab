@@ -32,6 +32,18 @@ pip install uv
 uv sync
 ```
 
+3. (Windows w/ Nvidia GPU, Optional) Install CUDA-based PyTorch:
+
+Please follow the [PyTorch official website](https://pytorch.org/get-started/locally/) to install CUDA-based PyTorch.
+
+```bash
+# An example to install CUDA 12.8-based PyTorch
+uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+
+# Another example to install CUDA 12.6-based PyTorch
+# uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
+```
+
 ## Usage
 
 ```bash
