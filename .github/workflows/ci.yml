@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11"]
+        python-version: ["3.11"]
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -27,13 +27,13 @@ jobs:
         uv sync
     - name: Lint with ruff
       run: |
-        ruff check .
+        uv run ruff check .
 
   format:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11"]
+        python-version: ["3.11"]
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -49,4 +49,4 @@ jobs:
         uv sync
     - name: Format with ruff
       run: |
-        ruff format --check .
+        uv run ruff format --check .
