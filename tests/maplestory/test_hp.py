@@ -46,7 +46,7 @@ def test_hp_checkpoint_from_app_capture(
 
     mock_get_hp_crop.assert_called_once_with(dummy_capture, ocr_friendly=True)
     mock_recognize_text.assert_called_once_with(
-        dummy_hp_crop_img, allowlist="0123456789/[]"
+        dummy_hp_crop_img, allowlist="0123456789/[]", width_ths=10.0
     )
 
 
