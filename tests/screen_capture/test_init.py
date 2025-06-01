@@ -32,7 +32,7 @@ def test_capture_app_window_non_macos():
 
     with pytest.raises(
         NotImplementedError,
-        match="Screen capture is only implemented for macOS at the moment.",
+        match="Screen capture is not implemented for the current platform: linux.",
     ):
         capture_app_window(app_name)
 

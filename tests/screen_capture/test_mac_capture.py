@@ -25,7 +25,7 @@ sys.modules["Cocoa"] = _cocoa_mock
 
 # Now import the module under test.
 # If on non-macOS, the mocks above will be used by mac_capture.py
-from explab.screen_capture import mac_capture
+from explab.screen_capture import mac_capture  # noqa: E402
 
 
 # Fixture to reset mocks for NSWorkspace if needed between tests,
@@ -136,97 +136,6 @@ def test_is_app_running_when_nsworkspace_not_in_globals_effectively(mocker):
     The original code checks `if "NSWorkspace" in globals():`.
     We can simulate this by temporarily making mac_capture.NSWorkspace None or unpatching it.
     """
-    # To simulate NSWorkspace not being available in the context of mac_capture.py,
-    # we can patch it to raise an AttributeError or set it to None if the code handles that.
-    # The original code checks `if "NSWorkspace" in globals():` which refers to its own module's globals.
-
-    # We will mock the `globals()` call within `is_app_running` to not include 'NSWorkspace'
-    # This is a bit more involved as `globals()` is a built-in.
-    # A simpler way is to ensure `mac_capture.NSWorkspace` itself is not available
-    # or to patch the `globals()` call if it were `mac_capture.globals()`.
-
-    # Given the code `if "NSWorkspace" in globals():`, this check happens within mac_capture.py.
-    # The most robust way to test this branch is to ensure that `mac_capture.NSWorkspace`
-    # is not resolvable or is None, and the code handles it.
-    # However, the code as written `from AppKit import NSWorkspace` means NSWorkspace
-    # *will* be in its globals if AppKit is importable.
-    # The check `if "NSWorkspace" in globals():` is a bit misleading if NSWorkspace is imported directly.
-    # It would make more sense if NSWorkspace was conditionally imported or accessed.
-
-    # Let's assume the intent is to check if NSWorkspace was successfully imported and is usable.
-    # We can achieve a similar effect by making NSWorkspace raise an error or be None.
-
-    mock_logger = mocker.patch.object(mac_capture, "logger")
-
-    # Simulate NSWorkspace not being loaded by removing it from the module's context for this test
-    # This is tricky because of how Python imports work.
-    # A more direct test of the `else` branch of `if "NSWorkspace" in globals():`
-    # would require modifying the source or a more complex patching of `globals` itself.
-
-    # Let's try to simulate the condition where the check `if "NSWorkspace" in globals()` fails.
-    # This means `NSWorkspace` is not in the `mac_capture` module's global scope.
-    # We can achieve this by temporarily deleting it from the module if it was imported.
-
-    original_nsworkspace = None
-    if hasattr(mac_capture, "NSWorkspace"):
-        original_nsworkspace = mac_capture.NSWorkspace
-        del mac_capture.NSWorkspace  # Temporarily remove it
-
-    # To ensure the `else` branch in `is_app_running` is hit, we need `NSWorkspace` to not be in `mac_capture.globals()`.
-    # The `from AppKit import NSWorkspace` line in `mac_capture.py` makes this tricky without altering the file
-    # or using advanced import manipulation.
-    # The provided code's check `if "NSWorkspace" in globals()` will almost always be true if the import succeeds.
-    # If the import `from AppKit import NSWorkspace` fails, an ImportError would occur before `is_app_running` is called.
-
-    # For the purpose of this test, let's assume the `globals()` check is meant to be more robust,
-    # perhaps against `NSWorkspace` being `None`.
-    # A direct way to test the logger warning is to control the `NSWorkspace` object.
-    # If we set `mac_capture.NSWorkspace = None`, the `sharedWorkspace()` call would fail.
-    # The current code structure makes the `else` branch of `if "NSWorkspace" in globals()` hard to reach
-    # if `AppKit` is successfully imported.
-
-    # Let's assume the most likely scenario for the warning is if `AppKit` itself couldn't be imported,
-    # and `NSWorkspace` was thus never added to `mac_capture`'s globals.
-    # Our initial MOCK_MACOS_LIBS setup handles this by replacing `AppKit` with a mock.
-    # If `AppKit` is a mock, `NSWorkspace` would be an attribute of that mock.
-
-    # Re-evaluating the original code: `from AppKit import NSWorkspace`
-    # If this line executes, NSWorkspace IS in globals().
-    # The only way it wouldn't be is if AppKit itself is not found, leading to ImportError.
-    # So, the `else` branch of `if "NSWorkspace" in globals()` in `is_app_running` seems unreachable
-    # if the module loads without an ImportError on `from AppKit import NSWorkspace`.
-
-    # Let's assume the check is more about `NSWorkspace` being usable.
-    # We will patch `mac_capture.NSWorkspace` to be something that causes the intended behavior (log warning).
-    # The current code would try `NSWorkspace.sharedWorkspace()`. If `NSWorkspace` is not what's expected,
-    # this would fail. The `if "NSWorkspace" in globals()` is the primary gate.
-
-    # To truly test the `else` branch of `if "NSWorkspace" in globals():`, we'd need to ensure
-    # that `mac_capture.py` is loaded in an environment where `NSWorkspace` is not in its global scope.
-    # This can be done by carefully managing `sys.modules` or by directly patching `mac_capture.globals`.
-    # Patching `mac_capture.globals` is not straightforward.
-
-    # Given the structure, the most practical way to test the warning is to ensure
-    # `NSWorkspace` is not the expected object.
-    # However, the test is specifically for the `else` branch of `if "NSWorkspace" in globals():`.
-    # This implies `NSWorkspace` is not defined in that scope.
-
-    # Let's assume the `MOCK_MACOS_LIBS` path: `sys.modules['AppKit'] = MagicMock()`.
-    # Then `from AppKit import NSWorkspace` would make `mac_capture.NSWorkspace` a `MagicMock` (or an attribute of it).
-    # The check `if "NSWorkspace" in globals()` would still be true.
-
-    # The most direct way to test the warning path is to assume the `globals()` check fails.
-    # This is hard to simulate perfectly without changing the source or very deep magic.
-    # Let's assume the spirit of the test is "what if NSWorkspace is unusable".
-    # The current `is_app_running` will call `NSWorkspace.sharedWorkspace()`.
-    # If `NSWorkspace` is, say, `None`, this will error.
-    # The `if "NSWorkspace" in globals()` is the key.
-
-    # If we want to test the *exact* `else` branch, we need `NSWorkspace` to not be in `mac_capture.globals`.
-    # This means the `from AppKit import NSWorkspace` line must effectively fail to add it,
-    # or it's removed.
-    # This test aims to simulate the scenario where 'NSWorkspace' is not in the globals
-    # of the mac_capture module when is_app_running is called.
     mock_logger_obj = mocker.patch.object(mac_capture, "logger")
 
     # Store original NSWorkspace if it exists in mac_capture's __dict__ (globals for the module)
@@ -352,9 +261,6 @@ def test_capture_app_window_successful_capture_rgb(mocker):
     # and then .copy(). We need to ensure c_array is formed correctly.
 
     # Mock ctypes part
-    mock_ctypes_array = (ctypes.c_ubyte * (width * height * spp)).from_buffer_copy(
-        fake_data_bytes
-    )
     mocker.patch("ctypes.c_ubyte", new=ctypes.c_ubyte)  # Ensure we use the real c_ubyte
 
     # The internal `c_ubyte_array_type.from_buffer(data_ptr)` needs `data_ptr` to be a buffer.
