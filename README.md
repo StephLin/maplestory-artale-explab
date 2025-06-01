@@ -47,7 +47,7 @@ uv pip install torch torchvision torchaudio --index-url https://download.pytorch
 ## Usage
 
 ```bash
-uv python main.py
+uv run python main.py
 ```
 
 ## Contributing
