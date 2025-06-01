@@ -27,7 +27,7 @@ jobs:
         uv sync
     - name: Lint with ruff
       run: |
-        ruff check .
+        uv run ruff check .
 
   format:
     runs-on: ubuntu-latest
@@ -49,4 +49,4 @@ jobs:
         uv sync
     - name: Format with ruff
       run: |
-        ruff format --check .
+        uv run ruff format --check .
