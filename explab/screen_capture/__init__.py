@@ -25,9 +25,13 @@ def capture_app_window(app_name: str) -> np.ndarray | None:
         from .mac_capture import capture_app_window as mac_capture_app_window
 
         return mac_capture_app_window(app_name)
+    elif sys.platform == "win32":
+        from .windows_capture import capture_app_window as windows_capture_app_window
+
+        return windows_capture_app_window(app_name)
     else:
         raise NotImplementedError(
-            "Screen capture is only implemented for macOS at the moment."
+            f"Screen capture is not implemented for the current platform: {sys.platform}."
         )
 
 
