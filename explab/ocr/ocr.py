@@ -46,7 +46,7 @@ def initialize(lang_list: list[str] | None = None) -> None:
 
 
 def recognize_text_from_image(
-    image_array: np.ndarray, allowlist: str | None = None
+    image_array: np.ndarray, allowlist: str | None = None, width_ths: float = 0.5
 ) -> list[TextRecognitionResult]:
     if reader is None:
         initialize()
@@ -54,7 +54,7 @@ def recognize_text_from_image(
     logger.debug("Feeding image array to EasyOCR for text extraction...")
     # results is a list of (bbox, text, confidence)
     # bbox is [[x_min, y_min], [x_max, y_min], [x_max, y_max], [x_min, y_max]]
-    raw_results = reader.readtext(image_array, allowlist=allowlist)  # type: ignore
+    raw_results = reader.readtext(image_array, allowlist=allowlist, width_ths=width_ths)  # type: ignore
     logger.debug("Text extraction results:")
 
     processed_results: list[TextRecognitionResult] = []
