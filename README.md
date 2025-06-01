@@ -23,7 +23,14 @@ This project uses [uv](https://github.com/astral-sh/uv) to manage dependencies a
 1. Install uv (if not already installed):
 
 ```bash
-pip install uv
+# On Windows.
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# On macOS.
+# curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Or pip.
+# pip install uv
 ```
 
 2. Sync project dependencies:
