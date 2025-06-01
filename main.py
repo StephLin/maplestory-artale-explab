@@ -63,7 +63,18 @@ def main():
     default=False,
     help="Disable OCR processing on the captured screenshot.",
 )
-def single_shot(use_real_capture: bool, no_save_screenshot: bool, disable_ocr: bool):
+@click.option(
+    "--disk-screen-capture",
+    default=str(PROJECT_ROOT / "./tests/assets/screenshot1.png"),
+    type=click.Path(exists=True, dir_okay=False, readable=True, path_type=Path),
+    help="Path to a static screenshot image to use instead of capturing the screen.",
+)
+def single_shot(
+    use_real_capture: bool,
+    no_save_screenshot: bool,
+    disable_ocr: bool,
+    disk_screen_capture: Path,
+):
     from skimage.io import imread, imsave
 
     from explab.maplestory.exp import ExpCheckpoint
@@ -88,7 +99,7 @@ def single_shot(use_real_capture: bool, no_save_screenshot: bool, disable_ocr: b
         if use_real_capture:
             capture = capture_app_window(app_to_screenshot)
         else:
-            capture = imread(PROJECT_ROOT / "./tests/assets/screenshot1.png")
+            capture = imread(disk_screen_capture)
 
         if capture is not None:
             logger.info(
