@@ -51,6 +51,7 @@ class HpCheckpoint:
         hp_results = ocr.recognize_text_from_image(
             cropper.get_hp_crop(capture, ocr_friendly=True),
             allowlist="0123456789/[]",
+            width_ths=10.0,
         )
 
         return HpCheckpoint.from_ocr_results(

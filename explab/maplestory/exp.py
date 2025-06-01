@@ -13,7 +13,7 @@ from explab.ocr import ocr
 from explab.ocr.base import TextRecognitionResult
 from explab.preprocessing import cropper
 
-LEVEL_REGEX = re.compile(r"^\d{1,3}$")
+LEVEL_REGEX = re.compile(r"^(L?V)?(?P<level>\d{1,3})$")
 EXP_REGEX = re.compile(r"^(?P<value>\d+)\[(?P<ratio>\d{1,2}\.\d{1,2})%(\].*)?$")
 
 logger = structlog.get_logger(__name__)
@@ -51,10 +51,14 @@ class ExpCheckpoint:
             Checkpoint: An instance of Checkpoint with level and exp set.
         """
         level_results = ocr.recognize_text_from_image(
-            cropper.get_level_crop(capture, ocr_friendly=True), allowlist="0123456789LV"
+            cropper.get_level_crop(capture, ocr_friendly=True),
+            allowlist="0123456789LV",
+            width_ths=10.0,
         )
         exp_results = ocr.recognize_text_from_image(
-            cropper.get_exp_crop(capture, ocr_friendly=True), allowlist="0123456789[]%."
+            cropper.get_exp_crop(capture, ocr_friendly=True),
+            allowlist="0123456789[]%.",
+            width_ths=10.0,
         )
 
         return ExpCheckpoint.from_ocr_results(
@@ -110,8 +114,9 @@ class ExpCheckpoint:
 
         for result in level_results:
             text = result.text.replace(" ", "")
-            if LEVEL_REGEX.match(text):
-                return int(text)
+            match_ = LEVEL_REGEX.match(text)
+            if match_:
+                return int(match_.group("level"))
 
         logger.warning(
             "Failed to parse level from OCR results: {}".format(
