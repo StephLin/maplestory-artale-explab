@@ -20,7 +20,14 @@
 1. 安裝 uv（若尚未安裝）：
 
 ```bash
-pip install uv
+# On Windows.
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# On macOS.
+# curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Or pip.
+# pip install uv
 ```
 
 2. 同步專案依賴：
