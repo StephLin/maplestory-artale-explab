@@ -97,6 +97,9 @@ def single_shot(use_real_capture: bool, no_save_screenshot: bool, disable_ocr: b
 
             if save_screenshot:
                 tmp_dir = PROJECT_ROOT / "temp"
+                if tmp_dir.exists():
+                    shutil.rmtree(tmp_dir)
+
                 tmp_dir.mkdir(exist_ok=True)
 
                 imsave(tmp_dir / "screenshot.png", capture)
