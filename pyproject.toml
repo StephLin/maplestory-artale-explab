@@ -1,0 +1,39 @@
+[project]
+name = "maplestory-artale-explab"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "click>=8.2.1",
+    "click-default-group>=1.2.4",
+    "dotenv>=0.9.9",
+    "easyocr>=1.7.2",
+    "nicegui>=2.18.0",
+    "pyautogui>=0.9.54",
+    "pygetwindow>=0.0.9",
+    "pyobjc-core>=11.0 ; sys_platform == 'darwin'",
+    "pyobjc-framework-quartz>=11.0 ; sys_platform == 'darwin'",
+    "pywebview>=5.4",
+    "rich>=14.0.0",
+    "scikit-image>=0.25.2",
+    "structlog>=25.3.0",
+]
+
+[tool.pytest.ini_options]
+addopts = "--cov=explab --cov-report=html"
+
+[tool.coverage.run]
+source = ["explab"]
+omit = ["explab/ui/*"]
+
+[tool.coverage.report]
+fail_under = 80
+
+[dependency-groups]
+dev = [
+    "ruff>=0.11.12",
+    "pytest>=8.3.5",
+    "pytest-cov>=6.1.1",
+    "pytest-mock>=3.14.0", # Added for mocker fixture
+]
