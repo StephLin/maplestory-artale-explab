@@ -13,7 +13,7 @@ from explab.ocr import ocr
 from explab.ocr.base import TextRecognitionResult
 from explab.preprocessing import cropper
 
-HP_REGEX = re.compile(r"^\[(?P<current>\d+)/(?P<total>\d+)\]$")
+HP_REGEX = re.compile(r"^\[(?P<current>\d+)/(?P<total>\d+)\].*$")
 
 logger = structlog.get_logger(__name__)
 
