@@ -29,6 +29,18 @@ pip install uv
 uv sync
 ```
 
+3. (搭載 Nvidia GPU 的 Windows, 選擇性) 安裝基於 CUDA 的 PyTorch:
+
+請按照 [PyTorch 官方網站](https://pytorch.org/get-started/locally/) 說明以安裝基於 CUDA 的 PyTorch.
+
+```bash
+# An example to install CUDA 12.8-based PyTorch
+uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+
+# Another example to install CUDA 12.6-based PyTorch
+# uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
+```
+
 ## 使用方式
 
 ```bash
