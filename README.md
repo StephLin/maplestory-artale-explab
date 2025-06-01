@@ -59,7 +59,7 @@ Due to the author's busy full-time job, it may not be possible to respond to all
 - In principle, follows the [BSD-3 License](./LICENSE).
 - However, using this project for activities that may affect other players' gaming experience (e.g., bot farming) is not permitted.
 
-## Declaration
+## Disclosure
 
 This project uses [GitHub Copilot](https://github.com/features/copilot) (mostly with Gemini 2.5 Pro) to generate some of the code. The main implementation has been reviewed manually, but errors or improper implementations may still exist. If you find any issues, please feel free to submit an issue or pull request.
 
