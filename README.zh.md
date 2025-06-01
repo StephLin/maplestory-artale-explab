@@ -44,7 +44,7 @@ uv pip install torch torchvision torchaudio --index-url https://download.pytorch
 ## 使用方式
 
 ```bash
-uv python main.py
+uv run python main.py
 ```
 
 ## 貢獻
