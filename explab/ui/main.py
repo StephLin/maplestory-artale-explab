@@ -9,21 +9,15 @@ from pathlib import Path
 # For explab
 sys.path.append(Path(__file__).resolve().parents[2].as_posix())
 
+import datetime
+
 import dotenv
+import numpy as np
 from nicegui import ui
 
-from explab.analyzer.exp import (
-    ExpAnalyzer,
-    ExpAnalyzerResult,
-)
-from explab.analyzer.hp import (
-    HpAnalyzer,
-    HpAnalyzerResult,
-)
-from explab.analyzer.mp import (
-    MpAnalyzer,
-    MpAnalyzerResult,
-)
+from explab.analyzer.exp import ExpAnalyzer, ExpAnalyzerResult
+from explab.analyzer.hp import HpAnalyzer, HpAnalyzerResult
+from explab.analyzer.mp import MpAnalyzer, MpAnalyzerResult
 from explab.maplestory.exp import ExpCheckpoint
 from explab.maplestory.hp import HpCheckpoint
 from explab.maplestory.mp import MpCheckpoint
@@ -41,6 +35,10 @@ class UI:
         self.exp_analyzer = ExpAnalyzer()
         self.hp_analyzer = HpAnalyzer()
         self.mp_analyzer = MpAnalyzer()
+        self.hp_capture_buffer: list[np.ndarray] = []
+        self.hp_ts_buffer: list[datetime.datetime] = []
+        self.mp_capture_buffer: list[np.ndarray] = []
+        self.mp_ts_buffer: list[datetime.datetime] = []
         self.is_exp_running = False
         self.is_hp_running = False
         self.is_mp_running = False
@@ -155,6 +153,8 @@ class UI:
         self.hp_status_label.set_text("Status: Running")
         self.hp_start_button.set_text("Stop")
         self.hp_analyzer.reset()
+        self.hp_capture_buffer.clear()
+        self.hp_ts_buffer.clear()
         self.hp_timer = ui.timer(
             interval=self.hp_analyzer.config.interval,
             callback=self.update_hp_analysis,
@@ -167,6 +167,8 @@ class UI:
         if self.hp_timer:
             self.hp_timer.deactivate()
             self.hp_timer = None
+        self.hp_capture_buffer.clear()
+        self.hp_ts_buffer.clear()
         self.hp_status_label.set_text("Status: Idle")
         self.hp_start_button.set_text("Start")
         ui.notify("HP analyzer stopped.")
@@ -181,28 +183,45 @@ class UI:
                 self.hp_result_label.set_content("Error: Failed to capture APP window.")
                 return
 
-            checkpoint = HpCheckpoint.from_app_capture(capture=capture)
+            self.hp_capture_buffer.append(capture)
+            self.hp_ts_buffer.append(datetime.datetime.now())
 
-            if checkpoint:
-                self.hp_analyzer.add_checkpoint(checkpoint)
-                try:
-                    result: HpAnalyzerResult | None = self.hp_analyzer.get_result()
-                    if result:
-                        markdown_lines = [
-                            "Results:",
-                            "",
-                            f"- Current HP: **{result.current_hp}**",
-                            f"- Total HP: **{result.total_hp}**",
-                            f"- HP Lost: **{result.hp_lost_per_minute:.2f}** HP/min",
-                        ]
-                        markdown_content = "\n".join(markdown_lines)
-                        self.hp_result_label.set_content(markdown_content)
-                    else:
-                        self.hp_result_label.set_content("Result: Analyzing...")
-                except ValueError as ve:
-                    self.hp_result_label.set_content(f"Error: {ve}")
-            else:
-                self.hp_result_label.set_content("Error: Failed to capture HP.")
+            if len(self.hp_capture_buffer) >= self.hp_analyzer.config.batch_size:
+                # Use the batch_size from analyzer config for ocr_batch_size as well
+                checkpoints = HpCheckpoint.from_app_captures(
+                    captures=self.hp_capture_buffer,
+                    ts_list=self.hp_ts_buffer,
+                    ocr_batch_size=self.hp_analyzer.config.batch_size,
+                )
+                self.hp_capture_buffer.clear()
+                self.hp_ts_buffer.clear()
+
+                processed_count = 0
+                for ckpt in checkpoints:
+                    if ckpt:
+                        self.hp_analyzer.add_checkpoint(ckpt)
+                        processed_count += 1
+
+                if (
+                    processed_count == 0 and not checkpoints
+                ):  # No captures in batch were valid
+                    self.hp_result_label.set_content("Error: Failed to capture HP.")
+                    return
+
+                result: HpAnalyzerResult | None = self.hp_analyzer.get_result()
+                if result:
+                    markdown_lines = [
+                        "Results:",
+                        "",
+                        f"- Current HP: **{result.current_hp}**",
+                        f"- Total HP: **{result.total_hp}**",
+                        f"- HP Lost: **{result.hp_lost_per_minute:.2f}** HP/min",
+                    ]
+                    markdown_content = "\n".join(markdown_lines)
+                    self.hp_result_label.set_content(markdown_content)
+                else:
+                    self.hp_result_label.set_content("Result: Analyzing...")
+
         except Exception as e:
             self.hp_result_label.set_content(f"Error: {e}")
             ui.notify(f"Error during HP analysis: {e}", type="negative")
@@ -219,6 +238,8 @@ class UI:
         self.mp_status_label.set_text("Status: Running")
         self.mp_start_button.set_text("Stop")
         self.mp_analyzer.reset()
+        self.mp_capture_buffer.clear()
+        self.mp_ts_buffer.clear()
         self.mp_timer = ui.timer(
             interval=self.mp_analyzer.config.interval,
             callback=self.update_mp_analysis,
@@ -231,6 +252,8 @@ class UI:
         if self.mp_timer:
             self.mp_timer.deactivate()
             self.mp_timer = None
+        self.mp_capture_buffer.clear()
+        self.mp_ts_buffer.clear()
         self.mp_status_label.set_text("Status: Idle")
         self.mp_start_button.set_text("Start")
         ui.notify("MP analyzer stopped.")
@@ -245,28 +268,43 @@ class UI:
                 self.mp_result_label.set_content("Error: Failed to capture APP window.")
                 return
 
-            checkpoint = MpCheckpoint.from_app_capture(capture=capture)
+            self.mp_capture_buffer.append(capture)
+            self.mp_ts_buffer.append(datetime.datetime.now())
 
-            if checkpoint:
-                self.mp_analyzer.add_checkpoint(checkpoint)
-                try:
-                    result: MpAnalyzerResult | None = self.mp_analyzer.get_result()
-                    if result:
-                        markdown_lines = [
-                            "Results:",
-                            "",
-                            f"- Current MP: **{result.current_mp}**",
-                            f"- Total MP: **{result.total_mp}**",
-                            f"- MP Lost: **{result.mp_lost_per_minute:.2f}** MP/min",
-                        ]
-                        markdown_content = "\n".join(markdown_lines)
-                        self.mp_result_label.set_content(markdown_content)
-                    else:
-                        self.mp_result_label.set_content("Result: Analyzing...")
-                except ValueError as ve:
-                    self.mp_result_label.set_content(f"Error: {ve}")
-            else:
-                self.mp_result_label.set_content("Error: Failed to capture MP.")
+            if len(self.mp_capture_buffer) >= self.mp_analyzer.config.batch_size:
+                checkpoints = MpCheckpoint.from_app_captures(
+                    captures=self.mp_capture_buffer,
+                    ts_list=self.mp_ts_buffer,
+                    ocr_batch_size=self.mp_analyzer.config.batch_size,
+                )
+                self.mp_capture_buffer.clear()
+                self.mp_ts_buffer.clear()
+
+                processed_count = 0
+                for ckpt in checkpoints:
+                    if ckpt:
+                        self.mp_analyzer.add_checkpoint(ckpt)
+                        processed_count += 1
+
+                if (
+                    processed_count == 0 and not checkpoints
+                ):  # No captures in batch were valid
+                    self.mp_result_label.set_content("Error: Failed to capture MP.")
+                    return
+
+                result: MpAnalyzerResult | None = self.mp_analyzer.get_result()
+                if result:
+                    markdown_lines = [
+                        "Results:",
+                        "",
+                        f"- Current MP: **{result.current_mp}**",
+                        f"- Total MP: **{result.total_mp}**",
+                        f"- MP Lost: **{result.mp_lost_per_minute:.2f}** MP/min",
+                    ]
+                    markdown_content = "\n".join(markdown_lines)
+                    self.mp_result_label.set_content(markdown_content)
+                else:
+                    self.mp_result_label.set_content("Result: Analyzing...")
         except Exception as e:
             self.mp_result_label.set_content(f"Error: {e}")
             ui.notify(f"Error during MP analysis: {e}", type="negative")
