@@ -11,6 +11,7 @@ from explab.maplestory.hp import HpCheckpoint
 @dataclass
 class HpAnalyzerConfig:
     interval: int = 1  # seconds between checkpoints
+    batch_size: int = 5  # Number of checkpoints to process in a batch
     max_checkpoints: int = 3600  # Keep a similar max_checkpoints
     min_checkpoints: int = 10  # Keep a similar min_checkpoints
 

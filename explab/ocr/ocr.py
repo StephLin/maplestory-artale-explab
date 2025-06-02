@@ -81,3 +81,63 @@ def recognize_text_from_image(
         )
 
     return processed_results
+
+
+def recognize_text_from_images_batch(
+    image_arrays: list[np.ndarray],
+    allowlist: str | None = None,
+    width_ths: float = 0.5,
+    batch_size: int | None = None,  # Add batch_size parameter for EasyOCR
+) -> list[list[TextRecognitionResult]]:
+    """
+    Recognizes text from a batch of images using EasyOCR.
+
+    Args:
+        image_arrays (list[np.ndarray]): A list of image arrays (NumPy arrays).
+        allowlist (str | None, optional): A string of characters to allow. Defaults to None.
+        width_ths (float, optional): Width threshold for text detection. Defaults to 0.5.
+        batch_size (int | None, optional): Batch size for OCR processing. Defaults to None (EasyOCR default).
+
+    Returns:
+        list[list[TextRecognitionResult]]: A list of lists, where each inner list
+                                           contains TextRecognitionResult objects for an image.
+    """
+    if reader is None:
+        initialize()
+
+    logger.debug(
+        f"Feeding {len(image_arrays)} image arrays to EasyOCR for batch text extraction..."
+    )
+
+    # EasyOCR's readtext can handle a list of images.
+    # It returns a list, where each element is the result for the corresponding image.
+    # Each result itself is a list of (bbox, text, confidence) tuples.
+    readtext_kwargs = {"allowlist": allowlist, "width_ths": width_ths}
+    if batch_size is not None:
+        readtext_kwargs["batch_size"] = batch_size
+
+    all_raw_results = reader.readtext_batched(image_arrays, **readtext_kwargs)  # type: ignore
+
+    batch_processed_results: list[list[TextRecognitionResult]] = []
+
+    for i, raw_results_for_image in enumerate(all_raw_results):
+        processed_results_for_image: list[TextRecognitionResult] = []
+        logger.debug(f"Text extraction results for image {i}:")
+        for raw_result in raw_results_for_image:
+            bbox_points, text, confidence = raw_result
+            x_min = int(bbox_points[0][0])
+            y_min = int(bbox_points[0][1])
+            x_max = int(bbox_points[2][0])
+            y_max = int(bbox_points[2][1])
+
+            bbox = BoundingBox(x_min=x_min, y_min=y_min, x_max=x_max, y_max=y_max)
+            recognition_result = TextRecognitionResult(
+                text=str(text), confidence=float(confidence), bounding_box=bbox
+            )
+            processed_results_for_image.append(recognition_result)
+            logger.debug(
+                f"  Detected text: {text} with confidence {float(confidence):.2f} at {bbox}"
+            )
+        batch_processed_results.append(processed_results_for_image)
+
+    return batch_processed_results

@@ -11,6 +11,7 @@ import structlog
 
 from explab.ocr import ocr
 from explab.ocr.base import TextRecognitionResult
+from explab.ocr.ocr import recognize_text_from_images_batch  # Added import
 from explab.preprocessing import cropper
 
 MP_REGEX = re.compile(r"^\[(?P<current>\d+)/(?P<total>\d+)\].*$")
@@ -58,6 +59,54 @@ class MpCheckpoint:
             mp_results=mp_results,
             ts=ts,
         )
+
+    @staticmethod
+    def from_app_captures(
+        captures: list[np.ndarray],
+        ts_list: list[datetime.datetime] | None = None,
+        ocr_batch_size: int | None = None,
+    ) -> list["MpCheckpoint | None"]:
+        """
+        Creates a list of MpCheckpoint instances from a batch of screen captures.
+
+        Args:
+            captures (list[np.ndarray]): A list of screen captures.
+            ts_list (list[datetime.datetime | None] | None): Optional list of timestamps,
+                                                             one for each capture. If None,
+                                                             current time is used for each.
+                                                             If provided, its length must match captures.
+            ocr_batch_size (int | None): Optional batch size for OCR processing.
+
+        Returns:
+            list[MpCheckpoint | None]: A list of MpCheckpoint instances or None
+                                       for captures where parsing fails.
+        """
+        if ts_list is not None and len(ts_list) != len(captures):
+            raise ValueError(
+                "Length of ts_list must match the number of captures if provided."
+            )
+
+        cropped_images = [
+            cropper.get_mp_crop(capture, ocr_friendly=True) for capture in captures
+        ]
+
+        batch_ocr_results = recognize_text_from_images_batch(
+            cropped_images,
+            allowlist="0123456789/[]",
+            width_ths=10.0,
+            batch_size=ocr_batch_size,
+        )
+
+        checkpoints: list[MpCheckpoint | None] = []
+        for i, single_image_ocr_results in enumerate(batch_ocr_results):
+            current_ts = ts_list[i] if ts_list else None
+            checkpoint = MpCheckpoint.from_ocr_results(
+                mp_results=single_image_ocr_results,
+                ts=current_ts,
+            )
+            checkpoints.append(checkpoint)
+
+        return checkpoints
 
     @staticmethod
     def from_ocr_results(
