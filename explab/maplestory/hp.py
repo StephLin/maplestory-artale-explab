@@ -86,6 +86,10 @@ class HpCheckpoint:
                 "Length of ts_list must match the number of captures if provided."
             )
 
+        if len(captures) == 0:
+            logger.warning("No captures provided for HP checkpoint extraction.")
+            return []
+
         cropped_images = [
             cropper.get_hp_crop(capture, ocr_friendly=True) for capture in captures
         ]
