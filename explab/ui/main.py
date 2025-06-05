@@ -3,6 +3,7 @@
 # license that can be found in the LICENSE file.
 
 import os
+import platform
 import sys
 from pathlib import Path
 
@@ -46,7 +47,10 @@ class UI:
         self.hp_timer = None
         self.mp_timer = None
 
-        self.app_name = os.getenv("MAPLESTORY_APP_NAME", "MapleStory Worlds")
+        if platform.system() == "Windows":
+            self.app_name = os.getenv("WINDOWS_MAPLESTORY_EXE_NAME", "msw.exe")
+        else:
+            self.app_name = os.getenv("MAPLESTORY_APP_NAME", "MapleStory Worlds")
 
         with ui.row():
             with ui.card():

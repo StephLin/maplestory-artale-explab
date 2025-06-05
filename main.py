@@ -4,6 +4,7 @@
 
 import logging
 import os
+import platform
 import shutil
 import subprocess as sp
 import sys
@@ -90,7 +91,10 @@ def single_shot(
     if enable_ocr:
         ocr.initialize()
 
-    app_to_screenshot = os.getenv("MAPLESTORY_APP_NAME", "MapleStory Worlds")
+    if platform.system() == "Windows":
+        app_to_screenshot = os.getenv("WINDOWS_MAPLESTORY_EXE_NAME", "msw.exe")
+    else:
+        app_to_screenshot = os.getenv("MAPLESTORY_APP_NAME", "MapleStory Worlds")
 
     try:
         logger.info(
