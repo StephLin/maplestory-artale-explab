@@ -278,30 +278,100 @@ def get_app_title_by_hwnd(hwnd: ctypes.wintypes.HWND) -> str:
     return buffer.value
 
 
+def find_main_window_by_pid(target_pid: int) -> ctypes.wintypes.HWND | None:
+    """Finds the main window HWND for a given process ID (PID)."""
+    result_hwnd = None
+
+    def callback(hwnd, lparam):
+        nonlocal result_hwnd
+        if not user32.IsWindowVisible(hwnd) or not user32.IsWindowEnabled(hwnd):
+            return True  # Continue
+        pid = ctypes.wintypes.DWORD()
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+        if pid.value == target_pid:
+            # Main window: no parent, no owner
+            if user32.GetParent(hwnd) == 0 and user32.GetWindow(hwnd, 4) == 0:
+                # Check window size
+                rect = RECT()
+                if user32.GetClientRect(hwnd, ctypes.byref(rect)):
+                    width = rect.right - rect.left
+                    height = rect.bottom - rect.top
+                    if width > 0 and height > 0:
+                        result_hwnd = hwnd
+                        return False  # Stop
+        return True  # Continue
+
+    enum_proc = WNDENUMPROC(callback)
+    user32.EnumWindows(enum_proc, 0)
+    return result_hwnd
+
+
 def capture_app_window(app_name_or_title_substr: str) -> np.ndarray | None:
     """
     Screenshots the window of the specified application on Windows.
-    Tries to find the window by a substring of its title.
+    Tries to find the window by a substring of its title or by exe name.
     """
     if not isinstance(app_name_or_title_substr, str):
         logger.error("app_name_or_title_substr must be a string.")
         return None
 
-    # First, check if the app (by exe name) is running, if app_name_or_title_substr looks like an exe
-    # This part can be refined. If it's clearly a title, we might skip this.
-    # For now, we rely on find_window_by_title_substring.
-    # A more robust approach would be:
-    # 1. If app_name_or_title_substr ends with .exe, use is_app_running. If running, get PID.
-    # 2. Enumerate windows for that PID and find the main window.
-    # 3. If not .exe, assume it's a title substring.
+    hwnd = None
+    app_title = ""
 
-    hwnd = find_window_by_title_substring(app_name_or_title_substr)
+    if app_name_or_title_substr.lower().endswith(".exe"):
+        # Check if exe is running
+        if not is_app_running(app_name_or_title_substr):
+            logger.error(f"Application '{app_name_or_title_substr}' is not running.")
+            return None
+        # Find PID(s) for the exe
+        DWORD = ctypes.wintypes.DWORD
+        array_size = 1024
+        pids_array = (DWORD * array_size)()
+        bytes_returned = DWORD()
+        psapi.EnumProcesses(
+            ctypes.byref(pids_array),
+            ctypes.sizeof(pids_array),
+            ctypes.byref(bytes_returned),
+        )
+        num_pids = bytes_returned.value // ctypes.sizeof(DWORD)
+        found = False
+        for i in range(num_pids):
+            pid = pids_array[i]
+            if pid == 0:
+                continue
+            h_process = kernel32.OpenProcess(
+                PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, False, pid
+            )
+            if not h_process:
+                continue
+            try:
+                exe_name_buffer = (ctypes.c_wchar * MAX_PATH)()
+                if psapi.GetModuleFileNameExW(
+                    h_process, None, exe_name_buffer, MAX_PATH
+                ):
+                    process_exe_name = exe_name_buffer.value.split("\\")[-1]
+                    if process_exe_name.lower() == app_name_or_title_substr.lower():
+                        hwnd = find_main_window_by_pid(pid)
+                        if hwnd:
+                            app_title = get_app_title_by_hwnd(hwnd)
+                            found = True
+                            break
+            finally:
+                kernel32.CloseHandle(h_process)
+        if not found or not hwnd:
+            logger.error(
+                f"Could not find main window for exe '{app_name_or_title_substr}'."
+            )
+            return None
+    else:
+        hwnd = find_window_by_title_substring(app_name_or_title_substr)
+        if hwnd:
+            app_title = get_app_title_by_hwnd(hwnd)
 
     if not hwnd:
         logger.error(f"Could not find window for '{app_name_or_title_substr}'.")
         return None
 
-    app_title = get_app_title_by_hwnd(hwnd) if hwnd else ""
     logger.info(
         f"Found window: '{app_title}' (HWND: {hwnd}) for capture. Attempting to capture..."
     )
