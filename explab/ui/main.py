@@ -14,7 +14,7 @@ import datetime
 
 import dotenv
 import numpy as np
-from nicegui import ui
+from nicegui import app, ui
 
 from explab.analyzer.exp import ExpAnalyzer, ExpAnalyzerResult
 from explab.analyzer.hp import HpAnalyzer, HpAnalyzerResult
@@ -27,6 +27,9 @@ from explab.screen_capture import capture_app_window
 from explab.utils.base import PROJECT_ROOT
 
 dotenv.load_dotenv(PROJECT_ROOT / ".env")
+
+on_top_env = os.getenv("ON_TOP", "false").lower()
+app.native.window_args["on_top"] = on_top_env in ("true", "1", "t")
 
 
 class UI:
