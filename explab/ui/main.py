@@ -28,8 +28,9 @@ from explab.utils.base import PROJECT_ROOT
 
 dotenv.load_dotenv(PROJECT_ROOT / ".env")
 
-on_top_env = os.getenv("ON_TOP", "false").lower()
-app.native.window_args["on_top"] = on_top_env in ("true", "1", "t")
+on_top_env = os.getenv("ON_TOP", "false").lower() in ("true", "1", "t")
+debug_env = os.getenv("DEBUG", "false").lower() in ("true", "1", "t")
+app.native.window_args["on_top"] = on_top_env
 
 
 class UI:
@@ -439,7 +440,7 @@ class UI:
 
 def main():
     UI()
-    ui.run(title="MapleStory Artale ExpLab", native=True, reload=True)
+    ui.run(title="MapleStory Artale ExpLab", native=True, reload=debug_env)
 
 
 if __name__ in {"__main__", "__mp_main__"}:
