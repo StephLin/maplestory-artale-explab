@@ -47,13 +47,48 @@ class UI:
         self.hp_timer = None
         self.mp_timer = None
 
+        # Define ECharts options for the experience plot
+        self.exp_chart_options = {
+            "tooltip": {"trigger": "axis"},
+            "legend": {"data": ["Current EXP", "Predicted Growth"], "top": "bottom"},
+            "xAxis": {
+                "type": "category",
+                "boundaryGap": False,
+                "data": [],  # Timestamps
+            },
+            "yAxis": {"type": "value"},
+            "series": [
+                {
+                    "name": "Current EXP",
+                    "type": "line",
+                    "data": [],  # Actual EXP values
+                    "smooth": True,
+                    "showSymbol": False,
+                },
+                {
+                    "name": "Predicted Growth",
+                    "type": "line",
+                    "data": [],  # Predicted EXP values
+                    "smooth": True,
+                    "showSymbol": False,
+                    "lineStyle": {"type": "dashed"},
+                },
+            ],
+            "grid": {
+                "left": "3%",
+                "right": "4%",
+                "bottom": "15%",
+                "containLabel": True,
+            },  # Adjust grid to make space for legend
+        }
+
         if platform.system() == "Windows":
             self.app_name = os.getenv("WINDOWS_MAPLESTORY_EXE_NAME", "msw.exe")
         else:
             self.app_name = os.getenv("MAPLESTORY_APP_NAME", "MapleStory Worlds")
 
-        with ui.row():
-            with ui.card():
+        with ui.row().classes("w-full h-full m-auto justify-center"):
+            with ui.card().classes("w-[48%]"):
                 ui.label("Experience Analyzer").classes("text-h6")
                 with ui.row(align_items="center"):
                     self.exp_start_button = ui.button(
@@ -61,24 +96,29 @@ class UI:
                     )
                     self.exp_status_label = ui.label("Status: Idle")
                 self.exp_result_label = ui.markdown("Result: ")
+                # Add the echart to the UI
+                self.exp_chart = ui.echart(options=self.exp_chart_options).classes(
+                    "w-full h-64 mt-4"
+                )
 
-            with ui.card():
-                ui.label("HP Analyzer").classes("text-h6")
-                with ui.row(align_items="center"):
-                    self.hp_start_button = ui.button(
-                        "Start", on_click=self.toggle_hp_analyzer
-                    )
-                    self.hp_status_label = ui.label("Status: Idle")
-                self.hp_result_label = ui.markdown("Result: ")
+            with ui.column().classes("w-[48%]"):
+                with ui.card().classes("w-full"):
+                    ui.label("HP Analyzer").classes("text-h6")
+                    with ui.row(align_items="center"):
+                        self.hp_start_button = ui.button(
+                            "Start", on_click=self.toggle_hp_analyzer
+                        )
+                        self.hp_status_label = ui.label("Status: Idle")
+                    self.hp_result_label = ui.markdown("Result: ")
 
-            with ui.card():
-                ui.label("MP Analyzer").classes("text-h6")
-                with ui.row(align_items="center"):
-                    self.mp_start_button = ui.button(
-                        "Start", on_click=self.toggle_mp_analyzer
-                    )
-                    self.mp_status_label = ui.label("Status: Idle")
-                self.mp_result_label = ui.markdown("Result: ")
+                with ui.card().classes("w-full"):
+                    ui.label("MP Analyzer").classes("text-h6")
+                    with ui.row(align_items="center"):
+                        self.mp_start_button = ui.button(
+                            "Start", on_click=self.toggle_mp_analyzer
+                        )
+                        self.mp_status_label = ui.label("Status: Idle")
+                    self.mp_result_label = ui.markdown("Result: ")
 
     def toggle_exp_analyzer(self):
         if self.is_exp_running:
@@ -91,6 +131,13 @@ class UI:
         self.exp_status_label.set_text("Status: Running")
         self.exp_start_button.set_text("Stop")
         self.exp_analyzer.reset()
+        # Reset chart data
+        if hasattr(self, "exp_chart"):
+            self.exp_chart.options["xAxis"]["data"] = []
+            self.exp_chart.options["series"][0]["data"] = []
+            self.exp_chart.options["series"][1]["data"] = []
+            self.exp_chart.update()
+
         self.exp_timer = ui.timer(
             interval=self.exp_analyzer.config.interval,
             callback=self.update_exp_analysis,
@@ -135,6 +182,78 @@ class UI:
                         ]
                         markdown_content = "\n".join(markdown_lines)
                         self.exp_result_label.set_content(markdown_content)
+
+                        # Update chart
+                        all_checkpoints = self.exp_analyzer.checkpoints
+
+                        if all_checkpoints:
+                            timestamps_display = [
+                                cp.ts.strftime("%H:%M:%S") for cp in all_checkpoints
+                            ]
+                            current_exp_values_display = [
+                                cp.exp for cp in all_checkpoints
+                            ]
+
+                            predicted_exp_values_display = []
+                            if all_checkpoints:  # Ensure there's at least one checkpoint for prediction base
+                                first_checkpoint_session = all_checkpoints[0]
+                                base_exp = first_checkpoint_session.exp
+                                base_ts_seconds = (
+                                    first_checkpoint_session.ts.timestamp()
+                                )
+
+                                # Use the overall exp_per_minute from the result for prediction
+                                exp_per_second = result.exp_per_minute / 60.0
+
+                                for cp_display in all_checkpoints:
+                                    time_diff_seconds = (
+                                        cp_display.ts.timestamp() - base_ts_seconds
+                                    )
+                                    predicted_exp = base_exp + (
+                                        exp_per_second * time_diff_seconds
+                                    )
+                                    predicted_exp_values_display.append(
+                                        round(predicted_exp)
+                                    )
+
+                            # Dynamically adjust Y-axis
+                            all_y_values = (
+                                current_exp_values_display
+                                + predicted_exp_values_display
+                            )
+                            if all_y_values:
+                                y_min = min(all_y_values)
+                                y_max = max(all_y_values)
+                                padding = (y_max - y_min) * 0.1  # 10% padding
+                                if (
+                                    padding == 0
+                                ):  # Handle case where all values are the same
+                                    padding = max(
+                                        10, y_min * 0.1
+                                    )  # Or 10% of the value, or 10 if value is small
+
+                                self.exp_chart.options["yAxis"]["min"] = round(
+                                    y_min - padding
+                                )
+                                self.exp_chart.options["yAxis"]["max"] = round(
+                                    y_max + padding
+                                )
+                            else:
+                                # Reset to default or auto if no data
+                                if "min" in self.exp_chart.options["yAxis"]:
+                                    del self.exp_chart.options["yAxis"]["min"]
+                                if "max" in self.exp_chart.options["yAxis"]:
+                                    del self.exp_chart.options["yAxis"]["max"]
+
+                            self.exp_chart.options["xAxis"]["data"] = timestamps_display
+                            self.exp_chart.options["series"][0]["data"] = (
+                                current_exp_values_display
+                            )
+                            self.exp_chart.options["series"][1]["data"] = (
+                                predicted_exp_values_display
+                            )
+                            self.exp_chart.update()
+
                     else:
                         self.exp_result_label.set_content("Result: Analyzing...")
                 except ValueError as ve:
@@ -317,7 +436,7 @@ class UI:
 
 def main():
     UI()
-    ui.run(title="MapleStory Artale ExpLab", native=True, reload=False)
+    ui.run(title="MapleStory Artale ExpLab", native=True, reload=True)
 
 
 if __name__ in {"__main__", "__mp_main__"}:
