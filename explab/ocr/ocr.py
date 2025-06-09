@@ -46,7 +46,10 @@ def initialize(lang_list: list[str] | None = None) -> None:
 
 
 def recognize_text_from_image(
-    image_array: np.ndarray, allowlist: str | None = None, width_ths: float = 0.5
+    image_array: np.ndarray,
+    allowlist: str | None = None,
+    width_ths: float = 0.5,
+    recognize_only: bool = False,
 ) -> list[TextRecognitionResult]:
     if reader is None:
         initialize()
@@ -54,7 +57,16 @@ def recognize_text_from_image(
     logger.debug("Feeding image array to EasyOCR for text extraction...")
     # results is a list of (bbox, text, confidence)
     # bbox is [[x_min, y_min], [x_max, y_min], [x_max, y_max], [x_min, y_max]]
-    raw_results = reader.readtext(image_array, allowlist=allowlist, width_ths=width_ths)  # type: ignore
+    if recognize_only:
+        # If we only want to recognize text without bounding boxes
+        raw_results = reader.recognize(  # type: ignore
+            image_array,
+            allowlist=allowlist,
+        )
+    else:
+        raw_results = reader.readtext(  # type: ignore
+            image_array, allowlist=allowlist, width_ths=width_ths
+        )
     logger.debug("Text extraction results:")
 
     processed_results: list[TextRecognitionResult] = []

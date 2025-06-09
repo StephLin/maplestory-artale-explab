@@ -54,7 +54,7 @@ class UI:
         # Define ECharts options for the experience plot
         self.exp_chart_options = {
             "tooltip": {"trigger": "axis"},
-            "legend": {"data": ["Current EXP", "Predicted Growth"], "top": "bottom"},
+            "legend": {"data": ["Gain"], "top": "bottom"},
             "xAxis": {
                 "type": "category",
                 "boundaryGap": False,
@@ -63,19 +63,11 @@ class UI:
             "yAxis": {"type": "value"},
             "series": [
                 {
-                    "name": "Current EXP",
+                    "name": "Gain",
                     "type": "line",
-                    "data": [],  # Actual EXP values
+                    "data": [],
                     "smooth": True,
                     "showSymbol": False,
-                },
-                {
-                    "name": "Predicted Growth",
-                    "type": "line",
-                    "data": [],  # Predicted EXP values
-                    "smooth": True,
-                    "showSymbol": False,
-                    "lineStyle": {"type": "dashed"},
                 },
             ],
             "grid": {
@@ -139,7 +131,6 @@ class UI:
         if hasattr(self, "exp_chart"):
             self.exp_chart.options["xAxis"]["data"] = []
             self.exp_chart.options["series"][0]["data"] = []
-            self.exp_chart.options["series"][1]["data"] = []
             self.exp_chart.update()
 
         self.exp_timer = ui.timer(
@@ -174,96 +165,60 @@ class UI:
 
             if checkpoint:
                 self.exp_analyzer.add_checkpoint(checkpoint)
-                try:
-                    result: ExpAnalyzerResult | None = self.exp_analyzer.get_result()
-                    if result:
-                        markdown_lines = [
-                            "Results:",
-                            "",
-                            f"- Level: **{result.current_level}**, Exp: **{result.current_exp}**",
-                            f"- Gain: **{result.exp_per_minute:.2f}** exp/min (**{result.exp_ratio_per_minute * 100:.2f}** %/min)",
-                            f"- Level Up: **{result.minutes_to_next_level:.2f}** min",
-                        ]
-                        markdown_content = "\n".join(markdown_lines)
-                        self.exp_result_label.set_content(markdown_content)
 
-                        # Update chart
-                        all_checkpoints = self.exp_analyzer.checkpoints
+            try:
+                result: ExpAnalyzerResult | None = self.exp_analyzer.get_result()
+                if result:
+                    self.exp_chart.options["series"][0]["data"].append(
+                        result.exp_per_minute
+                    )
+                    self.exp_chart.options["xAxis"]["data"].append(
+                        result.ts.strftime("%H:%M:%S")
+                    )
+                    if (
+                        len(self.exp_chart.options["xAxis"]["data"])
+                        > self.exp_analyzer.config.max_checkpoints
+                    ):
+                        self.exp_chart.options["series"][0]["data"].pop(0)
+                        self.exp_chart.options["xAxis"]["data"].pop(0)
 
-                        if all_checkpoints:
-                            timestamps_display = [
-                                cp.ts.strftime("%H:%M:%S") for cp in all_checkpoints
-                            ]
-                            current_exp_values_display = [
-                                cp.exp for cp in all_checkpoints
-                            ]
-
-                            predicted_exp_values_display = []
-                            if all_checkpoints:  # Ensure there's at least one checkpoint for prediction base
-                                first_checkpoint_session = all_checkpoints[0]
-                                base_exp = first_checkpoint_session.exp
-                                base_ts_seconds = (
-                                    first_checkpoint_session.ts.timestamp()
-                                )
-
-                                # Use the overall exp_per_minute from the result for prediction
-                                exp_per_second = result.exp_per_minute / 60.0
-
-                                for cp_display in all_checkpoints:
-                                    time_diff_seconds = (
-                                        cp_display.ts.timestamp() - base_ts_seconds
-                                    )
-                                    predicted_exp = base_exp + (
-                                        exp_per_second * time_diff_seconds
-                                    )
-                                    predicted_exp_values_display.append(
-                                        round(predicted_exp)
-                                    )
-
-                            # Dynamically adjust Y-axis
-                            all_y_values = (
-                                current_exp_values_display
-                                + predicted_exp_values_display
-                            )
-                            if all_y_values:
-                                y_min = min(all_y_values)
-                                y_max = max(all_y_values)
-                                padding = (y_max - y_min) * 0.1  # 10% padding
-                                if (
-                                    padding == 0
-                                ):  # Handle case where all values are the same
-                                    padding = max(
-                                        10, y_min * 0.1
-                                    )  # Or 10% of the value, or 10 if value is small
-
-                                self.exp_chart.options["yAxis"]["min"] = round(
-                                    y_min - padding
-                                )
-                                self.exp_chart.options["yAxis"]["max"] = round(
-                                    y_max + padding
-                                )
-                            else:
-                                # Reset to default or auto if no data
-                                if "min" in self.exp_chart.options["yAxis"]:
-                                    del self.exp_chart.options["yAxis"]["min"]
-                                if "max" in self.exp_chart.options["yAxis"]:
-                                    del self.exp_chart.options["yAxis"]["max"]
-
-                            self.exp_chart.options["xAxis"]["data"] = timestamps_display
-                            self.exp_chart.options["series"][0]["data"] = (
-                                current_exp_values_display
-                            )
-                            self.exp_chart.options["series"][1]["data"] = (
-                                predicted_exp_values_display
-                            )
-                            self.exp_chart.update()
-
+                    indicators = self.exp_analyzer.checkpoint_indicators
+                    if indicators and not indicators[-1]:
+                        current_exp_display = "-"
                     else:
-                        self.exp_result_label.set_content("Result: Analyzing...")
-                except ValueError as ve:
-                    self.exp_result_label.set_content(f"Result: {ve}")
-            else:
-                self.exp_result_label.set_content("Error: Failed to capture EXP.")
+                        current_exp_display = f"{result.current_exp}"
+
+                    markdown_lines = [
+                        "Results:",
+                        "",
+                        f"- Level: **{result.current_level}**, Exp: **{current_exp_display}**",
+                        f"- Gain: **{result.exp_per_minute:.2f}** exp/min (**{result.exp_ratio_per_minute * 100:.2f}** %/min)",
+                        f"- Level Up: **{result.minutes_to_next_level:.2f}** min",
+                    ]
+                    markdown_content = "\n".join(markdown_lines)
+                    self.exp_result_label.set_content(markdown_content)
+
+                    # Update chart
+                    all_y_values = self.exp_chart.options["series"][0]["data"]
+                    if all_y_values:
+                        y_min = min(all_y_values)
+                        y_max = max(all_y_values)
+                        padding = (y_max - y_min) * 0.1  # 10% padding
+                        if padding == 0:
+                            padding = max(10, y_min * 0.1)
+                        self.exp_chart.options["yAxis"]["min"] = round(y_min - padding)
+                        self.exp_chart.options["yAxis"]["max"] = round(y_max + padding)
+                    else:
+                        if "min" in self.exp_chart.options["yAxis"]:
+                            del self.exp_chart.options["yAxis"]["min"]
+                        if "max" in self.exp_chart.options["yAxis"]:
+                            del self.exp_chart.options["yAxis"]["max"]
+                    self.exp_chart.update()
+
+                else:
+                    self.exp_result_label.set_content("Result: Analyzing...")
+            except ValueError as ve:
+                self.exp_result_label.set_content(f"Error: {ve}")
         except Exception as e:
             self.exp_result_label.set_content(f"Error: {e}")
             ui.notify(f"Error during EXP analysis: {e}", type="negative")

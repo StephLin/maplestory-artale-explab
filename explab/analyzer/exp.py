@@ -3,6 +3,8 @@
 # license that can be found in the LICENSE file.
 
 import datetime
+import statistics
+from collections import defaultdict
 from dataclasses import dataclass
 
 from explab.maplestory.exp import ExpCheckpoint
@@ -36,14 +38,46 @@ class ExpAnalyzerResult:
 class ExpAnalyzer:
     def __init__(self):
         self.config: ExpAnalyzerConfig = ExpAnalyzerConfig()
-
         self.checkpoints: list[ExpCheckpoint] = []
+        self.checkpoint_indicators: list[bool] = []
 
     def reset(self):
         """
         Resets the analyzer by clearing the checkpoints.
         """
         self.checkpoints.clear()
+        self.checkpoint_indicators.clear()
+
+    def _validate_checkpoints(self, tolerance_exp_ratio: float = 0.02):
+        """
+        Validates checkpoints for consistency in total experience calculation at the same level.
+        Uses the median of total_exp as the consensus value.
+        Updates self.checkpoint_indicators in place.
+        Only runs if there are at least 5 checkpoints.
+        """
+        if len(self.checkpoints) < 5:
+            self.checkpoint_indicators = [True] * len(self.checkpoints)
+            return
+
+        indicators = [True] * len(self.checkpoints)
+        level_groups = defaultdict(list)
+        for idx, cp in enumerate(self.checkpoints):
+            level_groups[cp.level].append((idx, cp))
+
+        for _, group in level_groups.items():
+            total_exp_list = []
+            idx_list = []
+            for idx, cp in group:
+                if cp.exp_ratio > 0:
+                    total_exp_list.append(cp.exp / cp.exp_ratio)
+                    idx_list.append(idx)
+            if len(total_exp_list) < 2:
+                continue
+            consensus = statistics.median(total_exp_list)
+            for i, total_exp in enumerate(total_exp_list):
+                if abs(total_exp - consensus) / consensus > tolerance_exp_ratio:
+                    indicators[idx_list[i]] = False
+        self.checkpoint_indicators = indicators
 
     def add_checkpoint(self, checkpoint: ExpCheckpoint):
         """
@@ -54,23 +88,25 @@ class ExpAnalyzer:
         """
         if len(self.checkpoints) >= self.config.max_checkpoints:
             self.checkpoints.pop(0)
+            self.checkpoint_indicators.pop(0)
         self.checkpoints.append(checkpoint)
+        self._validate_checkpoints()
 
     def _compute_exp_per_minute(self) -> float | None:
         """
         Computes the experience per minute based on the given experience and time in minutes.
 
-        Args:
-            exp (int): The total experience points.
-            minutes (int): The time in minutes.
-
-        Returns:
-            float: The experience per minute.
+        Only includes checkpoints where checkpoint_indicators is True for both points in the pair.
         """
         exp_diff = 0
         time_diff = 0
 
         for i in range(1, len(self.checkpoints)):
+            # Only include pairs where both checkpoints are valid
+            if not (
+                self.checkpoint_indicators[i] and self.checkpoint_indicators[i - 1]
+            ):
+                continue
             if self.checkpoints[i].level != self.checkpoints[i - 1].level:
                 continue
 
