@@ -58,7 +58,7 @@ class ExpCheckpoint:
         exp_results = ocr.recognize_text_from_image(
             cropper.get_exp_crop(capture, ocr_friendly=True),
             allowlist="0123456789[]%.",
-            width_ths=10.0,
+            width_ths=100.0,
         )
 
         return ExpCheckpoint.from_ocr_results(
