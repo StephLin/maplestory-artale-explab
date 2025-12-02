@@ -14,7 +14,7 @@ from explab.ocr.base import TextRecognitionResult
 from explab.ocr.ocr import recognize_text_from_images_batch  # Added import
 from explab.preprocessing import cropper
 
-MP_REGEX = re.compile(r"^\[(?P<current>\d+)/(?P<total>\d+)\].*$")
+MP_REGEX = re.compile(r"^(M?P)?\[(?P<current>\d+)/(?P<total>\d+)\].*$")
 
 logger = structlog.get_logger(__name__)
 
@@ -50,7 +50,7 @@ class MpCheckpoint:
             MpCheckpoint | None: An instance of MpCheckpoint or None if parsing fails.
         """
         mp_results = ocr.recognize_text_from_image(
-            cropper.get_mp_crop(capture, ocr_friendly=True),
+            cropper.get_mp_crop(capture, ocr_friendly=False),
             allowlist="0123456789/[]",
             width_ths=10.0,
         )
@@ -91,7 +91,7 @@ class MpCheckpoint:
             return []
 
         cropped_images = [
-            cropper.get_mp_crop(capture, ocr_friendly=True) for capture in captures
+            cropper.get_mp_crop(capture, ocr_friendly=False) for capture in captures
         ]
 
         batch_ocr_results = recognize_text_from_images_batch(

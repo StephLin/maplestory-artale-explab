@@ -118,6 +118,13 @@ def single_shot(
                 tmp_dir.mkdir(exist_ok=True)
 
                 imsave(tmp_dir / "screenshot.png", capture)
+                imsave(tmp_dir / "level_crop.png", cropper.get_level_crop(capture))
+                imsave(
+                    tmp_dir / "level_crop.ocr.png",
+                    cropper.get_level_crop(capture, ocr_friendly=True),
+                )
+
+                imsave(tmp_dir / "screenshot.png", capture)
                 imsave(tmp_dir / "exp_crop.png", cropper.get_exp_crop(capture))
                 imsave(
                     tmp_dir / "exp_crop.ocr.png",
