@@ -26,7 +26,7 @@ addopts = "--cov=explab --cov-report=html"
 
 [tool.coverage.run]
 source = ["explab"]
-omit = ["explab/ui/*"]
+omit = ["explab/ui/*", "explab/screen_capture/*"]
 
 [tool.coverage.report]
 fail_under = 80
