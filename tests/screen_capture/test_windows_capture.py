@@ -42,7 +42,7 @@ class TestIsAppRunning:
     def test_app_found(self, mocker):
         """Test when application is found (mocked at high level)."""
         # Mock the entire function to return True for specific app
-        original_fn = windows_capture.is_app_running
+        original_fn = windows_capture.is_app_running  # noqa: F841
 
         def mock_is_running(app_name):
             if not isinstance(app_name, str):
@@ -72,7 +72,7 @@ class TestFindWindowByTitleSubstring:
 
     def test_window_not_found(self, mocker):
         """Test when window is not found."""
-        mock_logger = mocker.patch.object(windows_capture, "logger")
+        mock_logger = mocker.patch.object(windows_capture, "logger")  # noqa: F841
         mocker.patch.object(
             windows_capture, "find_window_by_title_substring", return_value=None
         )
@@ -175,7 +175,7 @@ class TestCaptureAppWindow:
         fake_image = np.random.randint(0, 256, size=(height, width, 4), dtype=np.uint8)
 
         # We'll mock the function to return our fake image
-        original_fn = windows_capture.capture_app_window
+        original_fn = windows_capture.capture_app_window  # noqa: F841
 
         def mock_capture(app_name):
             if isinstance(app_name, str) and app_name == "Test":
@@ -235,7 +235,7 @@ class TestIntegration:
         mock_psapi = mocker.patch.object(windows_capture, "psapi")
         mock_kernel32 = mocker.patch.object(windows_capture, "kernel32")
         mock_user32 = mocker.patch.object(windows_capture, "user32")
-        mock_gdi32 = mocker.patch.object(windows_capture, "gdi32")
+        mock_gdi32 = mocker.patch.object(windows_capture, "gdi32")  # noqa: F841
 
         mock_psapi.EnumProcesses.return_value = True
         mock_kernel32.OpenProcess.return_value = 1000
@@ -246,7 +246,7 @@ class TestIntegration:
             False  # Trigger early exit for simplicity
         )
 
-        mock_logger = mocker.patch.object(windows_capture, "logger")
+        mock_logger = mocker.patch.object(windows_capture, "logger")  # noqa: F841
 
         result = windows_capture.capture_app_window("notepad.exe")
 
