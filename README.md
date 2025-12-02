@@ -39,16 +39,16 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 uv sync
 ```
 
-3. (Windows w/ Nvidia GPU, Optional) Install CUDA-based PyTorch:
+3. Install PaddlePaddle:
 
-Please follow the [PyTorch official website](https://pytorch.org/get-started/locally/) to install CUDA-based PyTorch.
+Please follow the [PaddlePaddle official website](https://www.paddlepaddle.org.cn/install/quick?docurl=/documentation/docs/zh/develop/install/pip/windows-pip.html) to install CUDA-based PyTorch.
 
 ```bash
-# An example to install CUDA 12.8-based PyTorch
-uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+# An example to install CUDA 12.9-based PaddlePaddle
+uv pip install paddlepaddle-gpu==3.2.2 -i https://www.paddlepaddle.org.cn/packages/stable/cu129/
 
-# Another example to install CUDA 12.6-based PyTorch
-# uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
+# Another example to install CUDA 12.6-based PaddlePaddle
+# uv pip install paddlepaddle-gpu==3.2.2 -i https://www.paddlepaddle.org.cn/packages/stable/cu126/
 ```
 
 ## Usage
