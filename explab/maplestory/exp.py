@@ -13,7 +13,7 @@ from explab.ocr import ocr
 from explab.ocr.base import TextRecognitionResult
 from explab.preprocessing import cropper
 
-LEVEL_REGEX = re.compile(r"^(L?V)?(?P<level>\d{1,3})$")
+LEVEL_REGEX = re.compile(r"^(L?V)?\.?(?P<level>\d{1,3})$")
 EXP_REGEX = re.compile(r"^(?P<value>\d+)\[(?P<ratio>\d{1,2}\.\d{1,2}).*$")
 
 logger = structlog.get_logger(__name__)
@@ -56,7 +56,7 @@ class ExpCheckpoint:
             width_ths=10.0,
         )
         exp_results = ocr.recognize_text_from_image(
-            cropper.get_exp_crop(capture, ocr_friendly=True),
+            cropper.get_exp_crop(capture, ocr_friendly=False),
             allowlist="0123456789[]%.",
             width_ths=100.0,
         )

@@ -45,7 +45,7 @@ def test_mp_checkpoint_from_app_capture(
     assert checkpoint.total_mp == expected_total_mp
     assert checkpoint.ts == now
 
-    mock_get_mp_crop.assert_called_once_with(dummy_capture, ocr_friendly=True)
+    mock_get_mp_crop.assert_called_once_with(dummy_capture, ocr_friendly=False)
     mock_recognize_text.assert_called_once_with(
         dummy_mp_crop_img, allowlist="0123456789/[]", width_ths=10.0
     )
@@ -122,7 +122,7 @@ def test_mp_checkpoint_from_app_captures_success(
 
     assert mock_get_mp_crop.call_count == num_captures
     for i in range(num_captures):
-        mock_get_mp_crop.assert_any_call(dummy_captures[i], ocr_friendly=True)
+        mock_get_mp_crop.assert_any_call(dummy_captures[i], ocr_friendly=False)
 
     mock_recognize_batch.assert_called_once_with(
         dummy_mp_crop_imgs,

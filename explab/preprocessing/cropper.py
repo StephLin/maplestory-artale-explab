@@ -8,6 +8,7 @@ from functools import lru_cache
 import numpy as np
 import structlog
 from skimage import morphology
+from skimage.transform import resize
 
 from explab.utils.imgproc import binarize_image
 
@@ -187,6 +188,21 @@ def get_level_crop(image_array: np.ndarray, ocr_friendly: bool = False) -> np.nd
 
     if ocr_friendly:
         cropped_image = binarize_image(cropped_image, threshold=180)
+
+    cropped_image_ = (
+        resize(
+            cropped_image[..., :3],
+            (cropped_image.shape[0], cropped_image.shape[1] // 2),
+            anti_aliasing=True,
+        )
+        * 255
+    ).astype(np.uint8)
+
+    cropped_image = (
+        np.ones((cropped_image_.shape[0], cropped_image_.shape[1], 4), dtype=np.uint8)
+        * 255
+    )
+    cropped_image[..., :3] = cropped_image_
 
     return cropped_image
 

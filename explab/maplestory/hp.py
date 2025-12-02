@@ -14,7 +14,7 @@ from explab.ocr.base import TextRecognitionResult
 from explab.ocr.ocr import recognize_text_from_images_batch  # Added import
 from explab.preprocessing import cropper
 
-HP_REGEX = re.compile(r"^\[(?P<current>\d+)/(?P<total>\d+)\].*$")
+HP_REGEX = re.compile(r"^(H?P)?\[(?P<current>\d+)/(?P<total>\d+)\].*$")
 
 logger = structlog.get_logger(__name__)
 
@@ -50,7 +50,7 @@ class HpCheckpoint:
             HpCheckpoint | None: An instance of HpCheckpoint or None if parsing fails.
         """
         hp_results = ocr.recognize_text_from_image(
-            cropper.get_hp_crop(capture, ocr_friendly=True),
+            cropper.get_hp_crop(capture, ocr_friendly=False),
             allowlist="0123456789/[]",
             width_ths=10.0,
         )
@@ -91,7 +91,7 @@ class HpCheckpoint:
             return []
 
         cropped_images = [
-            cropper.get_hp_crop(capture, ocr_friendly=True) for capture in captures
+            cropper.get_hp_crop(capture, ocr_friendly=False) for capture in captures
         ]
 
         batch_ocr_results = recognize_text_from_images_batch(
